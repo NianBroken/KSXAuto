@@ -21,8 +21,11 @@ set_console_title("KSXAuto")
 # 获取当前文件所在目录的绝对路径
 current_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
+# 如果使用快捷方式则用这个路径
+shortcut_launch_config_file_path = os.path.dirname(current_path)
+
 # 拼接配置文件路径
-config_file_path = os.path.join(current_path, "config.ini")
+config_file_path = os.path.join(shortcut_launch_config_file_path, "config.ini")
 
 # 创建ConfigParser对象
 config = configparser.ConfigParser()
