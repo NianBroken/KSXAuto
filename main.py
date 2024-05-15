@@ -21,11 +21,14 @@ set_console_title("KSXAuto")
 # 获取当前文件所在目录的绝对路径
 current_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 
+# 拼接配置文件路径
+config_file_path = os.path.join(current_path, "config.ini")
+
 # 创建ConfigParser对象
 config = configparser.ConfigParser()
 
 # 读取配置文件
-config.read(os.path.join(os.path.dirname(current_path), "config.ini"))
+config.read(config_file_path, encoding="utf-8")
 
 # 获取配置项
 videoConfig = "videoConfig"
@@ -86,7 +89,9 @@ def check_updates():
         remote_version_id = remote_software_info["version_id"]
         local_software_info_file_path = os.path.join(current_path, "version_info.json")
         if os.path.exists(local_software_info_file_path):
-            with open(local_software_info_file_path, "r") as local_software_info:
+            with open(
+                local_software_info_file_path, "r", encoding="utf-8"
+            ) as local_software_info:
                 local_software_data = json.load(local_software_info)
                 # 提取本地软件信息
                 local_software_info = local_software_data["software_info"]
