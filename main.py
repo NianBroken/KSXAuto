@@ -25,7 +25,7 @@ current_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 config = configparser.ConfigParser()
 
 # 读取配置文件
-config.read(os.path.join(current_path, "config.ini"))
+config.read(os.path.join(os.path.dirname(current_path), "config.ini"))
 
 # 获取配置项
 videoConfig = "videoConfig"
