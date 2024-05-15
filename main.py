@@ -3,6 +3,8 @@ import configparser
 import sys
 import os
 import ctypes
+import json
+import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from datetime import datetime
@@ -69,6 +71,35 @@ options.add_argument("--start-maximized")
 driver = webdriver.Edge(options=options)
 # 隐式等待30秒
 driver.implicitly_wait(2)
+
+
+def check_updates():
+    # 读取远程Json信息
+    local_url = "https://gitee.com/nianbroken/KSXAuto/raw/main/version_info.json"
+
+    response = requests.get(local_url)
+
+    if response.status_code == 200:
+        local_url_content = response.text
+        remote_software_data = json.loads(local_url_content)
+        remote_software_info = remote_software_data["software_info"]
+        remote_version_id = remote_software_info["version_id"]
+        local_software_info_file_path = os.path.join(current_path, "version_info.json")
+        if os.path.exists(local_software_info_file_path):
+            with open(local_software_info_file_path, "r") as local_software_info:
+                local_software_data = json.load(local_software_info)
+                # 提取本地软件信息
+                local_software_info = local_software_data["software_info"]
+                local_version_id = local_software_info["version_id"]
+                print(f"本地版本号：{local_version_id}")
+                print(f"远程版本号：{remote_version_id}")
+                if local_version_id < remote_version_id:
+                    print("检测到存在新版本")
+                    print(f"新版本下载地址：{remote_software_info['download_url']}")
+        else:
+            print(f"新版本下载地址：{remote_software_info['download_url']}")
+    else:
+        print("获取远程Json信息失败：", response.status_code)
 
 
 # 获取当前时间
@@ -259,6 +290,9 @@ def get_video_remaining_time():
         time_failed = True
 
 
+check_updates()
+print("------")
+print(f"静音：{muteConfig}")
 print(f"静音：{muteConfig}")
 print(f"倍数：{playbackRateConfig}")
 print(f"运行路径：{current_path}")
