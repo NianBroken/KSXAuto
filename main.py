@@ -25,7 +25,7 @@ current_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 shortcut_launch_config_file_path = os.path.dirname(current_path)
 
 # 拼接配置文件路径
-config_file_path = os.path.join(shortcut_launch_config_file_path, "config.ini")
+config_file_path = os.path.join(current_path, "config.ini")
 
 # 创建ConfigParser对象
 config = configparser.ConfigParser()
@@ -352,6 +352,7 @@ else:
         current_page_url = driver.current_url
         if "/exam/pc/course/#/study?courseId" in current_page_url:
             print(f"[{current_time()}] 主动进入课程页面")
+            break
 
 videos_number()
 print(f"视频总数：{videos_number}")
