@@ -319,7 +319,7 @@ time.sleep(delay)
 current_page_url = driver.current_url
 if "login/account/login" in current_page_url:
     login_errormsg = driver.find_element(By.XPATH, '//*[@id="errormsg"]')
-    if login_errormsg.is_displayed():
+    if login_errormsg.is_displayed() and "错误" in login_errormsg.text:
         print(f"[{current_time()}] {login_errormsg.text} 已切换主动模式")
 
 
