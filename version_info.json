@@ -1,0 +1,10 @@
+{
+	"software_info": {
+		"name": "KSXAuto",
+		"version_number": "1.0.0",
+        "version_id": "1",
+		"release_date": "2024-05-15",
+		"download_url": "您的下载链接",
+		"changelog": ["第一行更新日志内容", "第二行更新日志内容", "第三行更新日志内容"]
+	}
+}
