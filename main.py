@@ -178,7 +178,7 @@ def process_course_page(driver, course, mute, playback_rate):
                 unfinished_videos = get_unfinished_videos(driver, total_videos)  # 获取未完成视频列表
                 if not unfinished_videos:  # 如果没有未完成视频
                     print(f"[{get_current_time()}] 不存在未完成的视频")  # 输出日志信息
-                    break  # 跳出循环
+                    sys.exit()  # 退出程序
 
                 first_unfinished_video_id = unfinished_videos[0]  # 获取第一个未完成视频ID
                 first_unfinished_video, first_unfinished_video_title = get_first_unfinished_video(driver, first_unfinished_video_id)  # 获取第一个未完成视频元素及标题
