@@ -6,8 +6,10 @@ import os  # 引入操作系统接口模块，处理文件和目录相关操作
 import ctypes  # 引入ctypes模块，提供与C语言兼容的数据类型
 import json  # 引入json模块，用于处理JSON数据
 import requests  # 引入requests模块，用于HTTP请求
+import glob  # 引入glob模块，用于文件路径模式匹配
 from selenium import webdriver  # 从selenium库中引入webdriver，用于自动化操作浏览器
 from selenium.webdriver.common.by import By  # 引入By类，用于定位页面元素
+from selenium.common.exceptions import WebDriverException  # 引入WebDriverException类，用于处理浏览器异常
 from datetime import datetime  # 从datetime模块中引入datetime类，用于处理日期和时间
 
 
@@ -30,11 +32,12 @@ def init_browser():
     options.add_experimental_option("excludeSwitches", ["enable-logging"])  # 排除特定日志开关
     options.add_argument("--start-maximized")  # 设置浏览器启动时最大化窗口
     driver = webdriver.Edge(options=options)  # 创建Edge浏览器实例，应用配置选项
-    driver.implicitly_wait(2)  # 设置隐式等待时间为2秒
+    driver.implicitly_wait(30)  # 设置隐式等待时间为30秒
     return driver  # 返回浏览器实例
 
 
 def check_for_updates(current_path):
+    global local_data, remote_data  # 声明全局变量，用于存储本地和远程版本信息数据
     """检查软件更新"""
     update_url = "https://gitee.com/nianbroken/KSXAuto/raw/main/version_info.json"  # 更新信息URL
     response = requests.get(update_url)  # 发起GET请求获取更新信息
@@ -42,16 +45,22 @@ def check_for_updates(current_path):
     if response.status_code == 200:  # 如果请求成功
         remote_data = response.json()  # 解析响应内容为JSON格式
         remote_version = remote_data["software_info"]["version_id"]  # 获取远程版本号
+        remote_changelog = remote_data["software_info"]["changelog"]  # 获取远程更新日志
         local_file_path = os.path.join(current_path, "version_info.json")  # 本地版本信息文件路径
-
         if os.path.exists(local_file_path):  # 如果本地版本信息文件存在
             with open(local_file_path, "r", encoding="utf-8") as local_file:  # 打开本地文件
                 local_data = json.load(local_file)  # 解析本地文件内容为JSON格式
                 local_version = local_data["software_info"]["version_id"]  # 获取本地版本号
                 if local_version < remote_version:  # 如果本地版本号小于远程版本号
-                    print(f"新版本可用：{remote_data['software_info']['download_url']}")  # 提示新版本可用
+                    print(f"检测到新版本 {remote_data['software_info']['version_number']} 已发布")  # 提示新版本可用
+                    print(f"新版本发布时间：{remote_data['software_info']['release_date']}")  # 提示新版本发布时间
+                    print("更新日志如下：")  # 提示更新日志
+                    for changelog in remote_changelog:  # 遍历远程更新日志列表
+                        print(changelog)  # 输出每个更新日志条目
+                    print(f"下载地址：{remote_data['software_info']['download_url']}")  # 提示下载地址
         else:
-            print(f"新版本可用：{remote_data['software_info']['download_url']}")  # 如果本地文件不存在，提示新版本可用
+            print(f"检测到新版本 {remote_data['software_info']['version_number']} 已发布")  # 如果本地文件不存在，提示新版本可用
+            print(f"下载地址：{remote_data['software_info']['download_url']}")  # 提示下载地址
     else:
         print(f"无法获取更新信息：{response.status_code}")  # 如果请求失败，提示错误码
 
@@ -67,17 +76,17 @@ def login(driver, username, password):
         username_input = driver.find_element(By.XPATH, '//*[@id="username"]')  # 定位用户名输入框
         username_input.clear()  # 清空输入框内容
         username_input.send_keys(username)  # 输入用户名
-        print(f"[{get_current_time()}] 输入账号")  # 输出日志信息
+        print(f"[{get_current_time()}] 被动填写账号")  # 输出日志信息
 
     if password:  # 如果密码存在
         password_input = driver.find_element(By.XPATH, '//*[@id="userTypePwd"]')  # 定位密码输入框
         password_input.clear()  # 清空输入框内容
         password_input.send_keys(password)  # 输入密码
-        print(f"[{get_current_time()}] 输入密码")  # 输出日志信息
+        print(f"[{get_current_time()}] 被动填写密码")  # 输出日志信息
 
     if username and password:  # 如果用户名和密码都存在
         driver.find_element(By.XPATH, '//*[@id="loginBtn"]').click()  # 点击登录按钮
-        print(f"[{get_current_time()}] 点击登录按钮")  # 输出日志信息
+        print(f"[{get_current_time()}] 被动点击登录按钮")  # 输出日志信息
 
 
 def get_user_full_name(driver):
@@ -137,20 +146,33 @@ def get_video_remaining_time(driver):
         return None  # 返回None
 
 
+def check_browser_closed(driver):
+    """检查浏览器是否被关闭"""
+    try:
+        driver.current_url  # 尝试获取当前窗口句柄
+        return False  # 如果成功获取，则浏览器未被关闭
+    except WebDriverException:  # 如果发生WebDriverException异常
+        return True  # 则浏览器被关闭
+
+
 def process_course_page(driver, course, mute, playback_rate):
     """处理课程页面"""
     while True:  # 无限循环处理课程页面
         try:
+            print(f"[{get_current_time()}] 等待进入课程页面")  # 输出日志信息
             if course:  # 如果课程URL存在
                 driver.get(course)  # 打开课程页面
-                print(f"[{get_current_time()}] 进入课程页面")  # 输出日志信息
+                print(f"[{get_current_time()}] 被动进入课程页面")  # 输出日志信息
                 time.sleep(2)  # 等待2秒
             else:
-                while "/exam/pc/course/#/study?courseId" not in driver.current_url:  # 等待页面加载到课程页面
-                    time.sleep(1)  # 每秒检查一次
+                while True:  # 等待页面加载到课程页面
+                    if "/exam/pc/course/#/study?courseId" in driver.current_url:  # 如果当前URL包含课程页面标识
+                        print(f"[{get_current_time()}] 主动进入课程页面")  # 输出日志信息
+                        time.sleep(1)  # 每秒检查一次
+                        break  # 跳出循环
 
             total_videos = get_total_videos(driver)  # 获取课程视频总数
-            print(f"视频总数：{total_videos}")  # 输出视频总数
+            print(f"[{get_current_time()}] 视频总数：{total_videos}")  # 输出视频总数
 
             while True:  # 无限循环处理未完成视频
                 unfinished_videos = get_unfinished_videos(driver, total_videos)  # 获取未完成视频列表
@@ -171,70 +193,103 @@ def process_course_page(driver, course, mute, playback_rate):
 
                     print(f"当前视频剩余：{remaining_time}", end="\r", flush=True)  # 输出剩余时间，覆盖同一行
         except Exception as e:  # 如果发生异常
-            print(f"[{get_current_time()}] 发生错误：{str(e)}")  # 输出错误信息
-            continue  # 继续循环
+            time.sleep(5)  # 等待2秒
+            if check_browser_closed(driver):  # 如果浏览器被关闭
+                print("\n异常退出")  # 输出日志信息
+                write_log_to_file(e)  # 将异常写入日志文件
+                print("错误内容已写入Log文件")  # 输出错误信息
+                sys.exit()  # 退出程序
+            else:
+                continue  # 继续循环
+
+
+def write_log_to_file(log):
+    """将日志写入文件"""
+    log_str = str(log)  # 将日志转换为字符串
+
+    if not os.path.exists("log"):  # 创建一个名为log的文件夹（如果不存在）
+        os.makedirs("log")  # 创建文件夹
+
+    now = datetime.now().strftime("%Y-%m-%d %H-%M-%S-%f")  # 获取当前日期和时间（精确到毫秒）
+    log_file_name = f"log/log[{now}].txt"  # 构建日志文件名
+
+    with open(log_file_name, "w") as f:  # 写入日志到文件
+        f.write(f"{now}\n{log_str}")  # 写入日期和时间以及日志内容
+
+    log_files = sorted(glob.glob("log/*.txt"), key=os.path.getctime)  # 检查日志文件数量
+    if len(log_files) > 100:  # 如果日志文件数量超过100个
+        while len(log_files) > 90:  # 删除最旧的日志，直到日志数量减少到90条
+            os.remove(log_files[0])  # 删除最旧的日志文件
+            log_files.pop(0)  # 更新日志文件列表
 
 
 def main():
-    current_path = os.path.dirname(os.path.realpath(sys.argv[0]))  # 获取当前脚本的目录路径
-    config_file_path = os.path.join(current_path, "config.ini")  # 配置文件路径
-    config = load_config(config_file_path)  # 加载配置文件
-    mute = config.getboolean("videoConfig", "mute", fallback=True)  # 获取静音配置，默认静音
-    playback_rate = config.getfloat("videoConfig", "playbackRate", fallback=1.0)  # 获取视频播放速度，默认为1.0倍
-    url = config.get("loginConfig", "url")  # 获取登录URL
-    username = config.get("loginConfig", "username")  # 获取用户名
-    password = config.get("loginConfig", "password")  # 获取密码
-    course = config.get("loginConfig", "course")  # 获取课程URL
+    try:
+        current_path = os.path.dirname(os.path.realpath(sys.argv[0]))  # 获取当前脚本的目录路径
+        config_file_path = os.path.join(current_path, "config.ini")  # 配置文件路径
+        config = load_config(config_file_path)  # 加载配置文件
+        mute = config.getboolean("videoConfig", "mute", fallback=True)  # 获取静音配置，默认静音
+        playback_rate = config.getfloat("videoConfig", "playbackRate", fallback=1.0)  # 获取视频播放速度，默认为1.0倍
+        url = config.get("loginConfig", "url")  # 获取登录URL
+        username = config.get("loginConfig", "username")  # 获取用户名
+        password = config.get("loginConfig", "password")  # 获取密码
+        course = config.get("loginConfig", "course")  # 获取课程URL
 
-    set_console_title("KSXAuto")  # 设置控制台标题
+        set_console_title("KSXAuto")  # 设置控制台标题
 
-    driver = init_browser()  # 初始化浏览器
+        driver = init_browser()  # 初始化浏览器
 
-    check_for_updates(current_path)  # 检查软件更新
-    print("------")  # 分隔线
-    print(f"静音：{mute}")  # 输出静音配置
-    print(f"倍数：{playback_rate}")  # 输出播放速度配置
-    print(f"运行路径：{current_path}")  # 输出当前运行路径
-    print("------")  # 分隔线
-    print(f"[{get_current_time()}] 程序启动成功")  # 输出启动成功信息
-    print(f"[{get_current_time()}] 等待进入登录页面")  # 输出等待登录页面信息
+        check_for_updates(current_path)  # 检查软件更新
+        print("------")  # 分隔线
+        print(f"静音：{mute}")  # 输出静音配置
+        print(f"倍数：{playback_rate}")  # 输出播放速度配置
+        print(f"运行路径：{current_path}")  # 输出当前运行路径
+        print("------")  # 分隔线
+        print("Copyright © 2024 NianBroken. All rights reserved.")  # 版权信息
+        print("Github：https://github.com/NianBroken/KSXAuto/")  # Github地址
+        print(f"[{get_current_time()}] KSXAuto {local_data['software_info']['version_number']} 程序启动成功")  # 输出启动成功信息
+        print(f"[{get_current_time()}] 等待进入登录页面")  # 输出等待登录页面信息
 
-    if url:  # 如果登录URL存在
-        driver.get(url)  # 打开登录页面
-        print(f"[{get_current_time()}] 被动进入登录页面")  # 输出被动进入登录页面信息
-    else:
-        while True:  # 无限循环等待登录页面
-            current_page_url = driver.current_url  # 获取当前页面URL
-            if "login/account/login" in current_page_url:  # 如果当前页面是登录页面
-                print(f"[{get_current_time()}] 主动进入登录页面")  # 输出主动进入登录页面信息
-                break  # 跳出循环
-            time.sleep(1)  # 每秒检查一次
+        if url:  # 如果登录URL存在
+            driver.get(url)  # 打开登录页面
+            print(f"[{get_current_time()}] 被动进入登录页面")  # 输出被动进入登录页面信息
+        else:
+            while True:  # 无限循环等待登录页面
+                current_page_url = driver.current_url  # 获取当前页面URL
+                if "login/account/login" in current_page_url:  # 如果当前页面是登录页面
+                    print(f"[{get_current_time()}] 主动进入登录页面")  # 输出主动进入登录页面信息
+                    break  # 跳出循环
+                time.sleep(1)  # 每秒检查一次
 
-    login(driver, username, password)  # 执行登录操作
-    time.sleep(1)  # 等待1秒
+        login(driver, username, password)  # 执行登录操作
+        time.sleep(1)  # 等待1秒
 
-    current_page_url = driver.current_url  # 获取当前页面URL
-    if "login/account/login" in current_page_url:  # 如果仍然在登录页面
-        login_errormsg = driver.find_element(By.XPATH, '//*[@id="errormsg"]')  # 定位错误信息元素
-        if login_errormsg.is_displayed() and "错误" in login_errormsg.text:  # 如果错误信息可见且包含"错误"
-            print(f"[{get_current_time()}] {login_errormsg.text} 已切换主动模式")  # 输出错误信息并切换模式
-
-    print(f"[{get_current_time()}] 等待进入主页")  # 输出等待进入主页信息
-
-    while True:  # 无限循环等待主页
         current_page_url = driver.current_url  # 获取当前页面URL
-        if "/exam/pc/home/" in current_page_url:  # 如果当前页面是主页
-            print(f"[{get_current_time()}] 主动进入首页")  # 输出主动进入首页信息
-            print(f"姓名：{get_user_full_name(driver)}")  # 输出用户姓名
-            time.sleep(2)  # 等待2秒
-            break  # 跳出循环
+        if "login/account/login" in current_page_url:  # 如果仍然在登录页面
+            login_errormsg = driver.find_element(By.XPATH, '//*[@id="errormsg"]')  # 定位错误信息元素
+            if login_errormsg.is_displayed() and "错误" in login_errormsg.text:  # 如果错误信息可见且包含"错误"
+                print(f"[{get_current_time()}] {login_errormsg.text} 已切换主动模式 请手动输入账号密码")  # 输出错误信息
+                print(f"[{get_current_time()}] 已切换主动模式 请主动输入账号密码")  # # 输出日志信息
 
-    while True:  # 无限循环处理课程页面
-        try:
-            process_course_page(driver, course, mute, playback_rate)  # 处理课程页面
-        except Exception as e:  # 如果发生异常
-            print(f"[{get_current_time()}] 发生错误：{str(e)}")  # 输出错误信息
-            continue  # 继续循环
+        print(f"[{get_current_time()}] 等待进入主页")  # 输出等待进入主页信息
+
+        while True:  # 无限循环等待主页
+            current_page_url = driver.current_url  # 获取当前页面URL
+            if "/exam/pc/home/" in current_page_url:  # 如果当前页面是主页
+                print(f"[{get_current_time()}] 主动进入首页")  # 输出主动进入首页信息
+                print(f"[{get_current_time()}] 姓名：{get_user_full_name(driver)}")  # 输出用户姓名
+                time.sleep(2)  # 等待2秒
+                break  # 跳出循环
+
+        while True:  # 无限循环处理课程页面
+            try:
+                process_course_page(driver, course, mute, playback_rate)  # 处理课程页面
+            except Exception:  # 如果发生异常
+                continue  # 继续循环
+    except Exception as e:  # 如果发生异常
+        write_log_to_file(e)  # 将错误信息写入日志文件
+        print(f"[{get_current_time()}] 发生错误 错误内容已写入Log文件")  # 输出错误信息
+        sys.exit()  # 退出程序
 
 
 if __name__ == "__main__":  # 如果脚本作为主程序运行
