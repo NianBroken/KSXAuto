@@ -94,13 +94,25 @@ def get_user_full_name(driver):
     return driver.find_element(By.XPATH, '//*[@id="viewFrameWorkBody"]/div/div[1]/div[1]/div/div/div[2]').text  # 定位并返回用户姓名
 
 
+total_videos_already_printed = False  # 初始化已打印标志为False
+
+
 def get_total_videos(driver):
     """获取课程视频总数"""
-    return len(driver.find_elements(By.CLASS_NAME, "catalog-item"))  # 定位所有视频元素并返回总数
+    global total_videos_already_printed  # 声明为全局变量
+    total_videos = len(driver.find_elements(By.CLASS_NAME, "catalog-item"))  # 定位所有视频元素并返回总数
+    if not total_videos_already_printed:  # 如果未打印过视频总数
+        print(f"[{get_current_time()}] 视频总数：{total_videos}")  # 输出视频总数
+        total_videos_already_printed = True  # 标记已打印过视频总数
+    return total_videos  # 返回视频总数
+
+
+unfinished_videos_already_printed = False  # 初始化已打印标志为False
 
 
 def get_unfinished_videos(driver, total_videos):
     """获取未完成的视频列表"""
+    global unfinished_videos_already_printed  # 声明为全局变量
     unfinished_videos = []  # 初始化未完成视频列表
 
     for i in range(1, total_videos + 1):  # 遍历所有视频
@@ -108,6 +120,12 @@ def get_unfinished_videos(driver, total_videos):
         completion_text = driver.find_element(By.XPATH, completion_xpath).text  # 获取完成状态文本
         if completion_text != "100%":  # 如果视频未完成
             unfinished_videos.append(i)  # 将视频ID添加到未完成列表中
+
+    if unfinished_videos:  # 如果存在未完成视频
+        if not unfinished_videos_already_printed:  # 如果未打印过未完成视频列表
+            print(f"[{get_current_time()}] 未完成视频个数：{len(unfinished_videos)}")  # 输出未完成视频列表
+            print(f"[{get_current_time()}] 未完成视频列表：{unfinished_videos}")  # 输出未完成视频列表
+            unfinished_videos_already_printed = True  # 标记已打印过未完成视频列表
 
     return unfinished_videos  # 返回未完成视频列表
 
@@ -132,7 +150,8 @@ def play_video(driver, video_element, mute, playback_rate):
     if driver.find_element(By.XPATH, '//*[@id="myVideo"]/button').is_displayed():  # 如果播放按钮可见
         driver.find_element(By.XPATH, '//*[@id="myVideo"]/button').click()  # 点击播放按钮
         return True  # 返回播放成功
-    return False  # 返回播放失败
+    else:
+        return False  # 返回播放失败
 
 
 def get_video_remaining_time(driver):
@@ -141,7 +160,17 @@ def get_video_remaining_time(driver):
         remaining_time_element = driver.find_element(By.XPATH, '//*[@id="myVideo"]/div[1]/div[2]')  # 尝试定位剩余时间元素
         if remaining_time_element.is_displayed():  # 如果剩余时间元素可见
             return remaining_time_element.text  # 返回剩余时间文本
-        return driver.find_element(By.XPATH, '//*[@id="myVideo"]/div[5]/div[5]/span[3]').text  # 返回备用路径的剩余时间文本
+        else:  # 如果剩余时间元素不可见
+            return None  # 返回None
+    except Exception:  # 如果发生异常
+        return None  # 返回None
+
+
+def get_alternate_video_remaining_time(driver):
+    """获取当前视频备用剩余时间"""
+    try:
+        alternate_remaining_time_element = driver.find_element(By.XPATH, '//*[@id="myVideo"]/div[5]/div[5]/span[3]')  # 尝试定位备用剩余时间元素
+        return alternate_remaining_time_element.text  # 返回备用剩余时间文本
     except Exception:  # 如果发生异常
         return None  # 返回None
 
@@ -159,20 +188,20 @@ def process_course_page(driver, course, mute, playback_rate):
     """处理课程页面"""
     while True:  # 无限循环处理课程页面
         try:
-            print(f"[{get_current_time()}] 等待进入课程页面")  # 输出日志信息
-            if course:  # 如果课程URL存在
-                driver.get(course)  # 打开课程页面
-                print(f"[{get_current_time()}] 被动进入课程页面")  # 输出日志信息
-                time.sleep(2)  # 等待2秒
-            else:
-                while True:  # 等待页面加载到课程页面
-                    if "/exam/pc/course/#/study?courseId" in driver.current_url:  # 如果当前URL包含课程页面标识
-                        print(f"[{get_current_time()}] 主动进入课程页面")  # 输出日志信息
-                        time.sleep(1)  # 每秒检查一次
-                        break  # 跳出循环
+            if "/exam/pc/course/#/study?courseId" not in driver.current_url:  # 如果当前URL不包含课程页面标识
+                print(f"[{get_current_time()}] 等待进入课程页面")  # 输出日志信息
+                if course:  # 如果课程URL存在
+                    driver.get(course)  # 打开课程页面
+                    print(f"[{get_current_time()}] 被动进入课程页面")  # 输出日志信息
+                    time.sleep(2)  # 等待2秒
+                else:
+                    while True:  # 等待页面加载到课程页面
+                        if "/exam/pc/course/#/study?courseId" in driver.current_url:  # 如果当前URL包含课程页面标识
+                            print(f"[{get_current_time()}] 主动进入课程页面")  # 输出日志信息
+                            time.sleep(1)  # 每秒检查一次
+                            break  # 跳出循环
 
             total_videos = get_total_videos(driver)  # 获取课程视频总数
-            print(f"[{get_current_time()}] 视频总数：{total_videos}")  # 输出视频总数
 
             while True:  # 无限循环处理未完成视频
                 unfinished_videos = get_unfinished_videos(driver, total_videos)  # 获取未完成视频列表
@@ -188,16 +217,21 @@ def process_course_page(driver, course, mute, playback_rate):
 
                 while True:  # 无限循环检查视频播放状态
                     remaining_time = get_video_remaining_time(driver)  # 获取当前视频剩余时间
-                    if not remaining_time or remaining_time in ["00:00:00", "0:00"]:  # 如果视频已播放完毕
+                    alternate_remaining_time = get_alternate_video_remaining_time(driver)  # 获取当前视频备用剩余时间
+                    try:
+                        play_button_visible = driver.find_element(By.XPATH, '//*[@id="myVideo"]/button').is_displayed()  # 如果播放按钮可见
+                    except Exception:
+                        play_button_visible = False
+                    if not remaining_time or not alternate_remaining_time or play_button_visible or remaining_time == "00:00:00" or alternate_remaining_time == "0:00":  # 如果视频已播放完毕
+                        print(f"当前视频剩余：{remaining_time}", end="\r", flush=True)  # 输出剩余时间，覆盖同一行
                         break  # 跳出循环
 
-                    print(f"当前视频剩余：{remaining_time}", end="\r", flush=True)  # 输出剩余时间，覆盖同一行
         except Exception as e:  # 如果发生异常
             time.sleep(5)  # 等待2秒
             if check_browser_closed(driver):  # 如果浏览器被关闭
-                print("\n异常退出")  # 输出日志信息
+                print(f"[{get_current_time()}] 异常退出")  # 输出日志信息
                 write_log_to_file(e)  # 将异常写入日志文件
-                print("错误内容已写入Log文件")  # 输出错误信息
+                print(f"[{get_current_time()}] 错误内容已写入Log文件")  # 输出错误信息
                 sys.exit()  # 退出程序
             else:
                 continue  # 继续循环
@@ -207,16 +241,17 @@ def write_log_to_file(log):
     """将日志写入文件"""
     log_str = str(log)  # 将日志转换为字符串
 
-    if not os.path.exists("log"):  # 创建一个名为log的文件夹（如果不存在）
-        os.makedirs("log")  # 创建文件夹
+    log_dir = os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), "log")  # 获取日志文件夹路径
+    if not os.path.exists(log_dir):  # 创建一个名为log的文件夹（如果不存在）
+        os.makedirs(log_dir)  # 创建文件夹
 
     now = datetime.now().strftime("%Y-%m-%d %H-%M-%S-%f")  # 获取当前日期和时间（精确到毫秒）
-    log_file_name = f"log/log[{now}].txt"  # 构建日志文件名
+    log_file_name = os.path.join(log_dir, f"log[{now}].txt")  # 构建日志文件名
 
     with open(log_file_name, "w") as f:  # 写入日志到文件
         f.write(f"{now}\n{log_str}")  # 写入日期和时间以及日志内容
 
-    log_files = sorted(glob.glob("log/*.txt"), key=os.path.getctime)  # 检查日志文件数量
+    log_files = sorted(glob.glob(os.path.join(log_dir, "*.txt")), key=os.path.getctime)  # 检查日志文件数量
     if len(log_files) > 100:  # 如果日志文件数量超过100个
         while len(log_files) > 90:  # 删除最旧的日志，直到日志数量减少到90条
             os.remove(log_files[0])  # 删除最旧的日志文件
