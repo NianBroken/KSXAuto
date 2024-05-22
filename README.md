@@ -1,5 +1,7 @@
 # 考试星自动程序
 
+<img src="https://raw.githubusercontent.com/NianBroken/KSXAuto/main/runImg.png" style="zoom:60%;" />
+
 ## 主要功能
 
 1. 自动进入考试星登录地址
