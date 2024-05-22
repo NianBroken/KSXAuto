@@ -12,15 +12,15 @@
 
 ## 使用方法
 
-1. 前往[releases](https://github.com/NianBroken/KSXAuto/releases/latest "releases")下载最新的`KSXAuto.zip`。
-2. 解压`KSXAuto.zip`得到`KSXAuto`文件夹。
-3. 进入`KSXAuto`文件夹。
-4. 找到`KSXAuto.exe`并双击运行。
-5. 在弹出的终端控制台中按下回车。
+1. 前往[releases](https://github.com/NianBroken/KSXAuto/releases/latest "releases")下载最新的`KSXAuto.zip`
+2. 解压`KSXAuto.zip`得到`KSXAuto`文件夹
+3. 进入`KSXAuto`文件夹
+4. 找到`KSXAuto.exe`并双击运行
+5. 在弹出的终端控制台中按下回车
 6. 在弹出的浏览器中进入你的登录地址，如：`https://www.kaoshixing.com/login/account/login/888888`
-7. 填写你的账号密码。
-8. 进入你需要观看的课程。
-9. 等待程序自动播放视频。
+7. 填写你的账号密码
+8. 进入你需要观看的课程
+9. 等待程序自动播放视频
 
 _播放过程中尽可能不要对网页进行操作，否则可能会出现无法预知的错误_
 
