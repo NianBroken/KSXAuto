@@ -260,6 +260,14 @@ def write_log_to_file(log):
 
 def main():
     try:
+        print("------")  # 分隔线
+        while True:  # 无限循环，直到用户按下回车键退出程序
+            user_input = input("按下回车后将为你打开浏览器窗口")  # 提示用户按下回车键
+            if user_input == "":  # 如果用户按下回车键
+                break  # 跳出循环
+            else:  # 如果用户输入了其他内容
+                print("无需输入内容，直接按下回车键即可")  # 提示用户无需输入内容，直接按下回车键即可
+
         current_path = os.path.dirname(os.path.realpath(sys.argv[0]))  # 获取当前脚本的目录路径
         config_file_path = os.path.join(current_path, "config.ini")  # 配置文件路径
         config = load_config(config_file_path)  # 加载配置文件
