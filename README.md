@@ -41,7 +41,7 @@ _若你未填写配置信息，程序将以默认配置运行_
 [https://nianbroken.github.io/Great-Firewall/](https://nianbroken.github.io/Great-Firewall/)
 
 ## 性价比最高的 ChatGPT 镜像站
-[Aizex 合租面板](https://aizex.cn/3qusWx)
+[Aizex 合租面板](https://aizex.klaio.top/)
 
 ## 其他
 
